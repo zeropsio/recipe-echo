@@ -1,0 +1,13 @@
+zerops:
+  - setup: app
+    build:
+      base: go@latest
+      buildCommands:
+        - go build main.go -o app
+      deployFiles:
+        - app
+    run:
+      ports:
+        - port: 8080
+          httpSupport: true
+      start: ./app

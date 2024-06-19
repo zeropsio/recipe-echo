@@ -1,0 +1,34 @@
+#yamlPreprocessor=on
+project:
+  name: recipe-gin
+  tags:
+    - zerops-recipe
+
+services:
+  - hostname: app
+    type: go@1
+#    buildFromGit: https://github.com/zeropsio/recipe-gin
+#    enableSubdomainAccess: true
+    envSecrets:
+      SESSIONS_SECRET: <@generateRandomBytes(<64>) | toString>
+
+  - hostname: db
+    priority: 10
+    type: postgresql@16
+    mode: NON_HA
+
+  - hostname: storage
+    type: object-storage
+    priority: 10
+    objectStoragePolicy: public-read
+    objectStorageSize: 5
+
+  - hostname: mailpit
+    type: go@1
+    buildFromGit: https://github.com/zeropsio/recipe-mailpit
+    enableSubdomainAccess: true
+
+  - hostname: adminer
+    type: php-apache@8.1
+    buildFromGit: https://github.com/zeropsio/recipe-adminer
+    enableSubdomainAccess: true
