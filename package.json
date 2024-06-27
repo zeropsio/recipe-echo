@@ -4,5 +4,8 @@
   },
   "dependencies": {
     "htmx.org": "^1.9.12"
+  },
+  "scripts": {
+    "build": "npx tailwindcss -i ./root.css -o ./static/css/tailwind.css"
   }
 }

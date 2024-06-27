@@ -9,8 +9,6 @@ services:
     type: go@1
     buildFromGit: https://github.com/zeropsio/recipe-echo
     enableSubdomainAccess: true
-    envSecrets:
-      SESSIONS_SECRET: <@generateRandomBytes(<64>) | toString>
 
   - hostname: db
     priority: 10

@@ -5,7 +5,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "./tmp/main"
-  cmd = "npx tailwindcss -i ./root.css -o ./static/css/tailwind.css && go build -o ./tmp/main main.go"
+  cmd = "npm run build && go build -o ./tmp/main main.go"
   delay = 256
   exclude_dir = ["tmp", "node_modules", "seed"]
   exclude_file = ["static/css/tailwind.css"]

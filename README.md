@@ -18,6 +18,7 @@ You can either click the deploy button to deploy directly on Zerops, or manually
 - **Load balanced** Echo web app running on clean **Zerops Alpine** service
 - Zerops **PostgreSQL 16** service as database
 - Zerops **Object Storage** (S3 compatible) service file storage
+- Zerops **KeyDB 6** service as Redis-compatible session storage
 - Cloud-ready **database migration** and initial **data seeding**
 - Utilization of Zerops built-in **environment and secret variables** system
 - Logs accessible through Zerops GUI
@@ -26,7 +27,7 @@ You can either click the deploy button to deploy directly on Zerops, or manually
 - Unlocked development experience:
     - Access to database and mail mock through Zerops project VPN (`zcli vpn up`)
     - Prepared `.env.dist` file (`cp .env.dist .env` and change ***** secrets found in Zerops GUI)
-    - Run `npm install` to be able to re-build `tailwind.css`
+    - Run `npm install` to be able to re-build `tailwind.css` (`npm run build`)
     - Optional: install and use auto-reloading feature [air](https://github.com/air-verse/air)
 
 <br/>
@@ -36,6 +37,7 @@ You can either click the deploy button to deploy directly on Zerops, or manually
 Base of the recipe is ready for production, the difference comes down to:
 
 - Use highly available version of the PostgreSQL database (change `mode` from `NON_HA` to `HA` in recipe YAML, `db` service section)
+- Use highly available version of the KeyDB store (change `mode` from `NON_HA` to `HA` in recipe YAML, `redis` service section)
 - Use at least two containers for Echo service to achieve high reliability and resilience (add `minContainers: 2` in recipe YAML, `app` service section)
 - Use production-ready third-party SMTP server instead of Mailpit (change `MAIL_` secret variables in recipe YAML `app` service)
 - Disable public access to Adminer or remove it altogether (remove service `adminer` from recipe YAML)

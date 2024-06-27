@@ -23,6 +23,8 @@ zerops:
         S3_BUCKET: $storage_bucketName
         SMTP_HOST: mailpit
         SMTP_PORT: "1025"
+        REDIS_HOST: redis
+        REDIS_PORT: $redis_port
       initCommands:
         - zsc execOnce seed -- /var/www/app -seed
       start: /var/www/app

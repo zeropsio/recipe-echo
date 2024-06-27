@@ -1,6 +1,7 @@
 {{ define "title" }}File uploads{{ end }}
 
 {{ define "body" }}
+    <p class="my-8">Click file to un-blur!</p>
     {{ if .LatestFiles }}
         <ul class="grid grid-cols-5 gap-4">
         {{ range .LatestFiles }}

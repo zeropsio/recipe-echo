@@ -2,5 +2,5 @@
 services:
   - hostname: app
     type: go@1
-    envSecrets:
-      SESSIONS_SECRET: <@generateRandomBytes(<64>) | toString>
+    buildFromGit: https://github.com/zeropsio/recipe-echo
+    enableSubdomainAccess: true
