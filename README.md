@@ -41,6 +41,7 @@ Base of the recipe is ready for production, the difference comes down to:
 - Use at least two containers for Echo service to achieve high reliability and resilience (add `minContainers: 2` in recipe YAML, `app` service section)
 - Use production-ready third-party SMTP server instead of Mailpit (change `MAIL_` secret variables in recipe YAML `app` service)
 - Disable public access to Adminer or remove it altogether (remove service `adminer` from recipe YAML)
+- Secure cookies with `Domain` attribute set to your domain
 
 <br/>
 <br/>
