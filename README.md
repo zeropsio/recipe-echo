@@ -1,4 +1,4 @@
-# Zerops x Django
+# Zerops x Echo
 
 [Echo](https://echo.labstack.com/) is a high performance, extensible, minimalist Go web framework. This recipe aims to showcase basic Echo server-side rendered web app and how to integrate it with [Zerops](https://zerops.io), all through a simple file upload demo application.
 
@@ -7,7 +7,7 @@
 <br />
 
 ## Deploy on Zerops
-You can either click the deploy button to deploy directly on Zerops, or manually copy the [import yaml](https://github.com/zeropsio/recipe-django/blob/main/zerops-project-import.yml) to the import dialog in the Zerops app.
+You can either click the deploy button to deploy directly on Zerops, or manually copy the [import yaml](https://github.com/zeropsio/recipe-echo/blob/main/zerops-project-import.yml) to the import dialog in the Zerops app.
 
 [![Deploy on Zerops](https://github.com/zeropsio/recipe-shared-assets/blob/main/deploy-button/green/deploy-button.svg)](https://app.zerops.io/recipe/echo)
 
