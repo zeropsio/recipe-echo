@@ -1,0 +1,48 @@
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  args_bin = []
+  bin = "./tmp/main"
+  cmd = "npx tailwindcss -i ./root.css -o ./static/css/tailwind.css && go build -o ./tmp/main main.go"
+  delay = 1000
+  exclude_dir = ["tmp", "node_modules"]
+  exclude_file = ["static/css/tailwind.css"]
+  exclude_regex = ["_test.go"]
+  exclude_unchanged = false
+  follow_symlink = false
+  full_bin = ""
+  include_dir = []
+  include_ext = ["go", "html"]
+  include_file = [".env"]
+  kill_delay = "0s"
+  log = "build-errors.log"
+  poll = false
+  poll_interval = 0
+  post_cmd = []
+  pre_cmd = []
+  rerun = false
+  rerun_delay = 500
+
+[color]
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+
+[log]
+  main_only = false
+  time = false
+
+[misc]
+  clean_on_exit = false
+
+[proxy]
+  enabled = false
+  app_port = 8080
+  proxy_port = 8081
+
+[screen]
+  clear_on_rebuild = false
+  keep_scroll = true

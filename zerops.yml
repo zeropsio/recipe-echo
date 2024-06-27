@@ -3,11 +3,15 @@ zerops:
     build:
       base: go@latest
       buildCommands:
-        - go build main.go -o app
+        - go build -v -o app main.go
       deployFiles:
+        - static/
         - app
     run:
+      base: go@latest
       ports:
         - port: 8080
           httpSupport: true
+      initCommands:
+        - zsc execOnce seed -- ./app -seed
       start: ./app
