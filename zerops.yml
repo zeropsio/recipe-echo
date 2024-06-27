@@ -12,6 +12,17 @@ zerops:
       ports:
         - port: 8080
           httpSupport: true
+      envVariables:
+        DB_HOST: db
+        DB_PORT: $db_port
+        DB_USER: $db_user
+        DB_PASSWORD: $db_password
+        S3_ENDPOINT: $storage_apiUrl
+        S3_ACCESS_KEY_ID: $storage_accessKeyId
+        S3_SECRET_ACCESS_KEY: $storage_secretAccessKey
+        S3_BUCKET: $storage_bucketName
+        SMTP_HOST: mailpit
+        SMTP_PORT: "1025"
       initCommands:
-        - zsc execOnce seed -- ./app -seed
-      start: ./app
+        - zsc execOnce seed -- /var/www/app -seed
+      start: /var/www/app

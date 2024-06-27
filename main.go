@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"embed"
 	"flag"
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -20,6 +22,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	_ "github.com/lib/pq"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/wneessen/go-mail"
@@ -32,26 +35,56 @@ import (
 //  - htmx
 
 //go:embed templates
-var templatesFs embed.FS
+var templatesFS embed.FS
+
+//go:embed seed
+var seedFS embed.FS
+
+//go:embed seed/init.sql
+var initSql string
 
 func main() {
 	var seed bool
 	flag.BoolVar(&seed, "seed", false, "migrate database and upload example files to s3")
 	flag.Parse()
 
-	var h *Handler
-	{
-		var err error
-		h, err = handler()
+	fmt.Println("initializing connections...")
+	h := initHandler()
+	defer h.close()
+
+	if seed {
+		// TODO: Context management.
+		ctx := context.Background()
+		fmt.Println("migrating db and seeding")
+
+		_, err := h.db.ExecContext(ctx, initSql)
 		if err != nil {
 			panic(err)
 		}
-	}
 
-	if seed {
+		files, err := seedFS.ReadDir("seed")
+		if err != nil {
+			panic(err)
+		}
+		for _, f := range files {
+			var file fs.File
+			file, err = seedFS.Open(path.Join("seed", f.Name()))
+			if err != nil {
+				panic(err)
+			}
+
+			fileInfo, _ := f.Info()
+
+			fmt.Println("inserting file:", f.Name())
+			_, err = h.insertFile(ctx, f.Name(), file, fileInfo.Size())
+			if err != nil {
+				panic(err)
+			}
+		}
 		return
 	}
 
+	fmt.Println("configuring and running echo...")
 	e := echo.New()
 	e.Logger.SetLevel(log.DEBUG)
 	e.Renderer = new(Renderer)
@@ -69,16 +102,28 @@ func main() {
 	e.GET("/", func(c echo.Context) error {
 		ctx := c.Request().Context()
 
-		var files []File
-		objects := h.s3.ListObjects(ctx, os.Getenv("S3_BUCKET"), minio.ListObjectsOptions{Recursive: true})
-		for object := range objects {
-			files = append(files, File{
-				Name:      object.Key,
-				CreatedAt: object.LastModified,
-				Size:      object.Size,
-				Url:       fmt.Sprintf("%s/%s/%s", os.Getenv("S3_ENDPOINT"), os.Getenv("S3_BUCKET"), object.Key),
-			})
+		rows, err := h.db.QueryContext(ctx, "SELECT id, created_at, name, url, size FROM files ORDER BY created_at DESC LIMIT 5")
+		if err != nil {
+			return err
 		}
+		defer rows.Close()
+
+		var files []File
+		for rows.Next() {
+			var f File
+			err = rows.Scan(&f.ID, &f.CreatedAt, &f.Name, &f.Url, &f.Size)
+			if err != nil {
+				return err
+			}
+			files = append(files, f)
+		}
+
+		err = rows.Err()
+		if err != nil {
+			return err
+		}
+
+		_ = rows.Close()
 
 		return c.Render(http.StatusOK, "sites/list.html", map[string]any{
 			"LatestFiles": files,
@@ -86,21 +131,18 @@ func main() {
 		})
 	})
 
-	e.GET("/detail/:filename", func(c echo.Context) error {
+	e.GET("/detail/:id", func(c echo.Context) error {
 		ctx := c.Request().Context()
 
-		object, err := h.s3.GetObjectACL(ctx, os.Getenv("S3_BUCKET"), c.Param("filename"))
+		var f File
+		row := h.db.QueryRowContext(ctx, "SELECT id, created_at, name, url, size FROM files WHERE id=$1", c.Param("id"))
+		err := row.Scan(&f.ID, &f.CreatedAt, &f.Name, &f.Url, &f.Size)
 		if err != nil {
 			return err
 		}
 
 		return c.Render(http.StatusOK, "sites/detail.html", map[string]any{
-			"File": File{
-				Name:      object.Key,
-				CreatedAt: object.LastModified,
-				Size:      object.Size,
-				Url:       fmt.Sprintf("%s/%s/%s", os.Getenv("S3_ENDPOINT"), os.Getenv("S3_BUCKET"), object.Key),
-			},
+			"File": f,
 		})
 	})
 
@@ -117,23 +159,12 @@ func main() {
 		}
 		defer ff.Close()
 
-		info, err := h.s3.PutObject(ctx, os.Getenv("S3_BUCKET"), fh.Filename, ff, -1, minio.PutObjectOptions{})
-		if err != nil {
-			return err
-		}
-		_ = info
-
-		m := mail.NewMsg()
-		_ = m.From("recipe@zerops.io")
-		_ = m.To("recipient@example.com")
-		m.Subject("File successfully uploaded")
-		m.SetBodyString(mail.TypeTextPlain, fmt.Sprintf("File %s - %dB succesfully uploaded to s3.", info.Key, info.Size))
-		err = h.mailer.DialAndSendWithContext(ctx, m)
+		id, err := h.insertFile(ctx, fh.Filename, ff, fh.Size)
 		if err != nil {
 			return err
 		}
 
-		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/detail/%s", url.PathEscape(info.Key)))
+		return c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/detail/%d", id))
 	})
 
 	if err := e.Start(":8080"); err != nil {
@@ -142,6 +173,7 @@ func main() {
 }
 
 type File struct {
+	ID        uint64
 	Name      string
 	CreatedAt time.Time
 	Size      int64
@@ -153,19 +185,42 @@ type File struct {
 type Renderer struct{}
 
 func (r *Renderer) Render(w io.Writer, name string, data any, _ echo.Context) error {
-	t, err := template.ParseFS(templatesFs, "templates/index.html", path.Join("templates", name), "templates/components/*.html")
+	t, err := template.ParseFS(templatesFS, "templates/index.html", path.Join("templates", name), "templates/components/*.html")
 	if err != nil {
 		return err
 	}
 	return t.Execute(w, data)
 }
 
-type Handler struct {
+type handler struct {
+	db     *sql.DB
 	s3     *minio.Client
 	mailer *mail.Client
 }
 
-func handler() (*Handler, error) {
+func (h *handler) close() {
+	_ = h.db.Close()
+	_ = h.mailer.Close()
+}
+
+func initHandler() *handler {
+	connString := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		"db",
+	)
+	db, err := sql.Open("postgres", connString)
+	if err != nil {
+		panic(err)
+	}
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+
 	s3, err := minio.New(strings.TrimPrefix(os.Getenv("S3_ENDPOINT"), "https://"), &minio.Options{
 		Creds: credentials.NewStaticV4(
 			os.Getenv("S3_ACCESS_KEY_ID"),
@@ -175,12 +230,12 @@ func handler() (*Handler, error) {
 		Secure: true,
 	})
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	mailerPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	mailer, err := mail.NewClient(
 		os.Getenv("SMTP_HOST"),
@@ -188,11 +243,44 @@ func handler() (*Handler, error) {
 		mail.WithPort(mailerPort),
 	)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return &Handler{
+	return &handler{
+		db:     db,
 		s3:     s3,
 		mailer: mailer,
-	}, nil
+	}
+}
+
+func (h *handler) insertFile(ctx context.Context, filename string, reader io.Reader, size int64) (uint64, error) {
+	objectKey := fmt.Sprintf("%d_%s", time.Now().Unix(), filename)
+
+	info, err := h.s3.PutObject(ctx, os.Getenv("S3_BUCKET"), objectKey, reader, size, minio.PutObjectOptions{})
+	if err != nil {
+		return 0, err
+	}
+
+	var id uint64
+	err = h.db.QueryRowContext(
+		ctx, "INSERT INTO files (name, url, size) VALUES ($1, $2, $3) RETURNING id",
+		filename,
+		fmt.Sprintf("%s/%s/%s", os.Getenv("S3_ENDPOINT"), os.Getenv("S3_BUCKET"), info.Key),
+		info.Size,
+	).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	m := mail.NewMsg()
+	_ = m.From("recipe@zerops.io")
+	_ = m.To("recipient@example.com")
+	m.Subject("File successfully uploaded")
+	m.SetBodyString(mail.TypeTextPlain, fmt.Sprintf("File %s - %dB succesfully uploaded to s3.", info.Key, info.Size))
+	err = h.mailer.DialAndSendWithContext(ctx, m)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }

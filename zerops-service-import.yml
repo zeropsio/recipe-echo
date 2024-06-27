@@ -1,0 +1,6 @@
+#yamlPreprocessor=on
+services:
+  - hostname: app
+    type: go@1
+    envSecrets:
+      SESSIONS_SECRET: <@generateRandomBytes(<64>) | toString>

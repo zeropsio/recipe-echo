@@ -6,8 +6,8 @@ tmp_dir = "tmp"
   args_bin = []
   bin = "./tmp/main"
   cmd = "npx tailwindcss -i ./root.css -o ./static/css/tailwind.css && go build -o ./tmp/main main.go"
-  delay = 1000
-  exclude_dir = ["tmp", "node_modules"]
+  delay = 256
+  exclude_dir = ["tmp", "node_modules", "seed"]
   exclude_file = ["static/css/tailwind.css"]
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
@@ -23,7 +23,7 @@ tmp_dir = "tmp"
   post_cmd = []
   pre_cmd = []
   rerun = false
-  rerun_delay = 500
+  rerun_delay = 512
 
 [color]
   build = "yellow"
@@ -40,8 +40,6 @@ tmp_dir = "tmp"
 
 [proxy]
   enabled = false
-  app_port = 8080
-  proxy_port = 8081
 
 [screen]
   clear_on_rebuild = false
