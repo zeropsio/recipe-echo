@@ -96,6 +96,7 @@ func main() {
 		CookiePath:     "/",
 		CookieHTTPOnly: true,
 		CookieMaxAge:   15 * 60, // 15m
+		// TODO: Set Domain attribute.
 	}))
 	e.Use(session.MiddlewareWithConfig(session.Config{
 		Store: h.store,
@@ -295,6 +296,7 @@ func NewHandler() *Handler {
 		Path:     "/",
 		HttpOnly: true,
 		MaxAge:   15 * 60, // 15m
+		// TODO: Set Domain attribute.
 	})
 
 	return &Handler{

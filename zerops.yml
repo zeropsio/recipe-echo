@@ -8,7 +8,6 @@ zerops:
         - static/
         - app
     run:
-      base: go@latest
       ports:
         - port: 8080
           httpSupport: true
