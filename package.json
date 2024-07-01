@@ -1,11 +1,14 @@
 {
+  "name": "recipe-echo",
   "devDependencies": {
     "tailwindcss": "^3.4.4"
   },
   "dependencies": {
+    "concurrently": "^8.2.2",
     "htmx.org": "^1.9.12"
   },
   "scripts": {
-    "build": "npx tailwindcss -i ./root.css -o ./static/css/tailwind.css"
+    "build": "npx tailwindcss -i ./root.css -o ./static/css/tailwind.css",
+    "dev": "concurrently \"pnpm run build\" \"air\""
   }
 }
