@@ -4,6 +4,7 @@
     "tailwindcss": "^3.4.4"
   },
   "dependencies": {
+    "concurrently": "^8.2.2",
     "htmx.org": "^1.9.12"
   },
   "scripts": {

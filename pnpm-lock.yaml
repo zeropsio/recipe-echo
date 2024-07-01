@@ -8,13 +8,13 @@ importers:
 
   .:
     dependencies:
+      concurrently:
+        specifier: ^8.2.2
+        version: 8.2.2
       htmx.org:
         specifier: ^1.9.12
         version: 1.9.12
     devDependencies:
-      concurrently:
-        specifier: ^8.2.2
-        version: 8.2.2
       tailwindcss:
         specifier: ^3.4.4
         version: 3.4.4
